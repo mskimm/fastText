@@ -53,6 +53,8 @@ class FastText {
   void startThreads();
   void addInputVector(Vector&, int32_t) const;
   void trainThread(int32_t);
+  void startCreateDictionaryThreads();
+  void createDictionaryThread(int32_t, std::shared_ptr<Dictionary>);
   std::vector<std::pair<real, std::string>> getNN(
       const Matrix& wordVectors,
       const Vector& queryVec,

@@ -92,6 +92,8 @@ class Dictionary {
   void add(const std::string&);
   bool readWord(std::istream&, std::string&) const;
   void readFromFile(std::istream&);
+  void readFromFileMap(std::istream&, int64_t);
+  void readFromFileReduce(const std::vector<std::shared_ptr<Dictionary>>&);
   std::string getLabel(int32_t) const;
   void save(std::ostream&) const;
   void load(std::istream&);

@@ -24,6 +24,13 @@ void seek(std::ifstream& ifs, int64_t pos) {
   ifs.clear();
   ifs.seekg(std::streampos(pos));
 }
+
+int64_t consumeLine(std::ifstream& ifs, int64_t pos) {
+  utils::seek(ifs, pos);
+  std::string buf;
+  std::getline(ifs, buf);
+  return ifs.tellg();
+}
 } // namespace utils
 
 } // namespace fasttext

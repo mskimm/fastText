@@ -259,6 +259,50 @@ void Dictionary::readFromFile(std::istream& in) {
   }
 }
 
+void Dictionary::readFromFileMap(std::istream& in, int64_t end) {
+  std::string word;
+  int64_t minThreshold = 1;
+  while (readWord(in, word)) {
+    add(word);
+    if (size_ > 0.75 * MAX_VOCAB_SIZE) {
+      minThreshold++;
+      threshold(minThreshold, minThreshold);
+    }
+    if (in.tellg() >= end) {
+      break;
+    }
+  }
+}
+
+void Dictionary::readFromFileReduce(
+    const std::vector<std::shared_ptr<Dictionary>>& parts) {
+  words_.clear();
+  for (const auto& part : parts) {
+    ntokens_ += part->ntokens_;
+    for (const auto& e : part->words_) {
+      int32_t h = find(e.word);
+      if (word2int_[h] == -1) {
+        words_.push_back(e);
+        word2int_[h] = size_++;
+      } else {
+        words_[word2int_[h]].count += e.count;
+      }
+    }
+  }
+  threshold(args_->minCount, args_->minCountLabel);
+  initTableDiscard();
+  initNgrams();
+  if (args_->verbose > 0) {
+    std::cerr << "\rRead " << ntokens_ / 1000000 << "M words" << std::endl;
+    std::cerr << "Number of words:  " << nwords_ << std::endl;
+    std::cerr << "Number of labels: " << nlabels_ << std::endl;
+  }
+  if (size_ == 0) {
+    throw std::invalid_argument(
+        "Empty vocabulary. Try a smaller -minCount value.");
+  }
+}
+
 void Dictionary::threshold(int64_t t, int64_t tl) {
   sort(words_.begin(), words_.end(), [](const entry& e1, const entry& e2) {
     if (e1.type != e2.type) {

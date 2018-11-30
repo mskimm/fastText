@@ -723,7 +723,11 @@ void FastText::train(const Args& args) {
     throw std::invalid_argument(
         args_->input + " cannot be opened for training!");
   }
-  dict_->readFromFile(ifs);
+  if (args.thread == 1) {
+    dict_->readFromFile(ifs);
+  } else {
+    startCreateDictionaryThreads();
+  }
   ifs.close();
 
   if (args_->pretrainedVectors.size() != 0) {
@@ -791,4 +795,51 @@ bool comparePairs(
   return l.first > r.first;
 }
 
+void FastText::startCreateDictionaryThreads() {
+  std::vector<std::thread> threads;
+  std::vector<std::shared_ptr<Dictionary>> dicts;
+  for (int32_t i = 0; i < args_->thread; i++) {
+    dicts.push_back(std::make_shared<Dictionary>(args_));
+    threads.push_back(std::thread([=]() { createDictionaryThread(i, dicts[i]); }));
+  }
+  if (args_->verbose > 0) {
+    int64_t last = 0;
+    while (true) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(500));
+      int64_t ntokens = 0;
+      for (const auto& dict : dicts) {
+        ntokens += dict->ntokens();
+      }
+      std::cerr << "\rRead " << ntokens / 1000000 << "M words" << std::flush;
+      if (ntokens == last) {
+        break;
+      }
+      last = ntokens;
+    }
+  }
+
+  for (int32_t i = 0; i < args_->thread; i++) {
+    threads[i].join();
+  }
+  dict_->readFromFileReduce(dicts);
+}
+
+void FastText::createDictionaryThread(
+    int32_t threadId,
+    std::shared_ptr<Dictionary> dict) {
+  std::ifstream ifs(args_->input);
+  int64_t size = utils::size(ifs);
+  int64_t begin = threadId * size / args_->thread;
+  int64_t end = std::min(size, (threadId + 1) * size / args_->thread);
+  if (end < size) {
+    end = utils::consumeLine(ifs, end);
+  }
+  if (begin == 0) {
+    utils::seek(ifs, begin);
+  } else {
+    utils::consumeLine(ifs, begin);
+  }
+  dict->readFromFileMap(ifs, end);
+  ifs.close();
+}
 } // namespace fasttext
