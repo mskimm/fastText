@@ -323,6 +323,22 @@ void Dictionary::addWordNgrams(
   }
 }
 
+void Dictionary::addInteraction(
+    std::vector<int32_t>& line,
+    const std::vector<int32_t>& hashes) const {
+  int32_t offset = 1;
+  if (args_->wordNgrams > 1) {
+    offset = 2;
+  }
+  for (int32_t i = 0; i < hashes.size(); i++) {
+    for (int32_t j = i + offset; j < hashes.size(); j++) {
+      uint64_t h = hashes[i];
+      h = h * 116049371 + hashes[j];
+      pushHash(line, h % args_->bucket);
+    }
+  }
+}
+
 void Dictionary::addSubwords(
     std::vector<int32_t>& line,
     const std::string& token,
@@ -404,6 +420,12 @@ int32_t Dictionary::getLine(
     }
   }
   addWordNgrams(words, word_hashes, args_->wordNgrams);
+  if (args_->wordNgrams > 0) {
+    std::sort(word_hashes.begin(), word_hashes.end());
+    word_hashes.erase(std::unique(word_hashes.begin(), word_hashes.end()),
+                      word_hashes.end());
+    addInteraction(words, word_hashes);
+  }
   return ntokens;
 }
 

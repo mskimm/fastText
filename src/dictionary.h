@@ -61,6 +61,9 @@ class Dictionary {
       std::vector<int32_t>& line,
       const std::vector<int32_t>& hashes,
       int32_t n) const;
+  void addInteraction(
+      std::vector<int32_t>& line,
+      const std::vector<int32_t>& hashes) const;
 
  public:
   static const std::string EOS;
