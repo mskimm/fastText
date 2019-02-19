@@ -235,6 +235,7 @@ void Dictionary::readFromFile(std::istream& in) {
   std::string word;
   int64_t minThreshold = 1;
   while (readWord(in, word)) {
+    convertLabelPrefix(word);
     add(word);
     if (ntokens_ % 1000000 == 0 && args_->verbose > 1) {
       std::cerr << "\rRead " << ntokens_ / 1000000 << "M words" << std::flush;
@@ -387,6 +388,7 @@ int32_t Dictionary::getLine(
   words.clear();
   labels.clear();
   while (readWord(in, token)) {
+    label_type ltype = convertLabelPrefix(token);
     uint32_t h = hash(token);
     int32_t wid = getId(token, h);
     entry_type type = wid < 0 ? getType(token) : getType(wid);
@@ -397,6 +399,12 @@ int32_t Dictionary::getLine(
       word_hashes.push_back(h);
     } else if (type == entry_type::label && wid >= 0) {
       labels.push_back(wid - nwords_);
+      if (ltype == label_type::pos) {
+        labels[labels.size() - 1] += 1;
+      } else if (ltype == label_type::neg) {
+        labels[labels.size() - 1] += 1;
+        labels[labels.size() - 1] *= -1;
+      }
     }
     if (token == EOS) {
       break;
@@ -534,6 +542,19 @@ void Dictionary::dump(std::ostream& out) const {
       entryType = "label";
     }
     out << it.word << " " << it.count << " " << entryType << std::endl;
+  }
+}
+
+label_type Dictionary::convertLabelPrefix(std::string& word) const {
+  if (args_->loss == loss_name::sigmoid) {
+    bool pos = word.find("+") == 0;
+    bool neg = word.find("-") == 0;
+    if (pos || neg) {
+      word = "__label__" + word.substr(1, word.size());
+    }
+    return pos ? label_type::pos : neg ? label_type::neg : label_type::none;
+  } else {
+    return label_type::none;
   }
 }
 

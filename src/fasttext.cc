@@ -343,7 +343,7 @@ void FastText::supervised(
   if (labels.size() == 0 || line.size() == 0) {
     return;
   }
-  if (args_->loss == loss_name::ova) {
+  if (args_->loss == loss_name::ova || args_->loss == loss_name::sigmoid) {
     model.update(line, labels, Model::kAllLabelsAsTarget, lr);
   } else {
     std::uniform_int_distribution<> uniform(0, labels.size() - 1);
@@ -439,11 +439,24 @@ bool FastText::predictLine(
   dict_->getLine(in, words, labels);
   std::vector<std::pair<real, int32_t>> linePredictions;
   predict(k, words, linePredictions, threshold);
-  for (const auto& p : linePredictions) {
-    predictions.push_back(
-        std::make_pair(std::exp(p.first), dict_->getLabel(p.second)));
+  if (args_->loss == loss_name::sigmoid) {
+    for (const auto& l : labels) {
+      const auto& label = dict_->getLabel(std::abs(l) - 1);
+      predictions.push_back(
+          std::make_pair(-1, (l > 0 ? "+" : "-") +
+                             label.substr(args_->label.size(), label.size())));
+    }
   }
-
+  for (const auto& p : linePredictions) {
+    if (args_->loss == loss_name::sigmoid) {
+      const auto& label = dict_->getLabel(p.second);
+      predictions.push_back(
+          std::make_pair(p.first, label.substr(args_->label.size(), label.size())));
+    } else {
+      predictions.push_back(
+          std::make_pair(std::exp(p.first), dict_->getLabel(p.second)));
+    }
+  }
   return true;
 }
 

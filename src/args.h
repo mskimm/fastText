@@ -16,7 +16,7 @@
 namespace fasttext {
 
 enum class model_name : int { cbow = 1, sg, sup };
-enum class loss_name : int { hs = 1, ns, softmax, ova };
+enum class loss_name : int { hs = 1, ns, softmax, ova, sigmoid };
 
 class Args {
  protected:
@@ -47,6 +47,7 @@ class Args {
   std::string label;
   int verbose;
   std::string pretrainedVectors;
+  bool saveVectors;
   bool saveOutput;
 
   bool qout;

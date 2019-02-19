@@ -76,6 +76,7 @@ class Model {
   real hierarchicalSoftmax(int32_t, real);
   real softmax(int32_t, real);
   real oneVsAll(const std::vector<int32_t>&, real);
+  real sigmoid(const std::vector<int32_t>&, real);
 
   void predict(
       const std::vector<int32_t>&,
