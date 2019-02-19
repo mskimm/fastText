@@ -161,6 +161,7 @@ void Args::parseArgs(const std::vector<std::string>& args) {
         pretrainedVectors = std::string(args.at(ai + 1));
       } else if (args[ai] == "-saveVectors") {
         saveVectors = true;
+        ai--;
       } else if (args[ai] == "-saveOutput") {
         saveOutput = true;
         ai--;
