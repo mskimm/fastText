@@ -125,7 +125,7 @@ void FastText::saveParVectors() {
   for (int32_t i = 0; i < args_->thread; i++) {
     threads.push_back(std::thread([=]() {
       std::stringstream filename;
-      filename << args_->output
+      filename << args_->output << "-"
                << std::setfill('0') << std::setw(5) << i << ".vec";
       saveParVectors(filename.str(), i, args_->thread);
     }));
