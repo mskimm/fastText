@@ -35,6 +35,7 @@ Args::Args() {
   label = "__label__";
   verbose = 2;
   pretrainedVectors = "";
+  dict = "";
   saveOutput = false;
 
   qout = false;
@@ -54,6 +55,8 @@ std::string Args::lossToString(loss_name ln) const {
       return "softmax";
     case loss_name::ova:
       return "one-vs-all";
+    case loss_name::sigmoid:
+      return "sigmoid";
   }
   return "Unknown loss!"; // should never happen
 }
@@ -105,6 +108,8 @@ void Args::parseArgs(const std::vector<std::string>& args) {
         input = std::string(args.at(ai + 1));
       } else if (args[ai] == "-output") {
         output = std::string(args.at(ai + 1));
+      } else if (args[ai] == "-dict") {
+        dict = std::string(args.at(ai + 1));
       } else if (args[ai] == "-lr") {
         lr = std::stof(args.at(ai + 1));
       } else if (args[ai] == "-lrUpdateRate") {
@@ -133,6 +138,8 @@ void Args::parseArgs(const std::vector<std::string>& args) {
         } else if (
             args.at(ai + 1) == "one-vs-all" || args.at(ai + 1) == "ova") {
           loss = loss_name::ova;
+        } else if (args.at(ai + 1) == "sigmoid") {
+          loss = loss_name::sigmoid;
         } else {
           std::cerr << "Unknown loss: " << args.at(ai + 1) << std::endl;
           printHelp();

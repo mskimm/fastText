@@ -30,7 +30,10 @@ Dictionary::Dictionary(std::shared_ptr<Args> args)
       nwords_(0),
       nlabels_(0),
       ntokens_(0),
-      pruneidx_size_(-1) {}
+      pruneidx_size_(-1) {
+  pos = args_->label + "+";
+  neg = args_->label + "-";
+}
 
 Dictionary::Dictionary(std::shared_ptr<Args> args, std::istream& in)
     : args_(args),
@@ -40,6 +43,8 @@ Dictionary::Dictionary(std::shared_ptr<Args> args, std::istream& in)
       ntokens_(0),
       pruneidx_size_(-1) {
   load(in);
+  pos = args_->label + "+";
+  neg = args_->label + "-";
 }
 
 int32_t Dictionary::find(const std::string& w) const {
@@ -56,8 +61,11 @@ int32_t Dictionary::find(const std::string& w, uint32_t h) const {
 }
 
 void Dictionary::add(const std::string& w) {
-  int32_t h = find(w);
   ntokens_++;
+  if (w == pos || w == neg) {
+    return;
+  }
+  int32_t h = find(w);
   if (word2int_[h] == -1) {
     entry e;
     e.word = w;
@@ -397,6 +405,10 @@ int32_t Dictionary::getLine(
       word_hashes.push_back(h);
     } else if (type == entry_type::label && wid >= 0) {
       labels.push_back(wid - nwords_);
+    } else if (type == entry_type::label && token == pos && labels.size() & 1) {
+      labels.push_back(1);
+    } else if (type == entry_type::label && token == neg && labels.size() & 1) {
+      labels.push_back(0);
     }
     if (token == EOS) {
       break;
@@ -479,6 +491,39 @@ void Dictionary::load(std::istream& in) {
   word2int_.assign(word2intsize, -1);
   for (int32_t i = 0; i < size_; i++) {
     word2int_[find(words_[i].word)] = i;
+  }
+}
+
+void Dictionary::loadFromDump(std::istream& in) {
+  words_.clear();
+  pruneidx_size_ = -1;
+  pruneidx_.clear();
+  in >> size_ >> nwords_ >> nlabels_ >> ntokens_;
+  std::string tpe;
+  for (int32_t i = 0; i < size_; i++) {
+    entry e;
+    in >> e.word >> e.count >> tpe;
+    if (tpe == "word") {
+      e.type = entry_type(entry_type::word);
+    } else if (tpe == "label") {
+      e.type = entry_type(entry_type::label);
+    } else {
+      throw std::invalid_argument("invalid label type");
+    }
+    words_.push_back(e);
+  }
+  initTableDiscard();
+  initNgrams();
+
+  int32_t word2intsize = std::ceil(size_ / 0.7);
+  word2int_.assign(word2intsize, -1);
+  for (int32_t i = 0; i < size_; i++) {
+    word2int_[find(words_[i].word)] = i;
+  }
+  if (args_->verbose > 0) {
+    std::cerr << "Read " << ntokens_ / 1000000 << "M words" << std::endl;
+    std::cerr << "Number of words:  " << nwords_ << std::endl;
+    std::cerr << "Number of labels: " << nlabels_ << std::endl;
   }
 }
 

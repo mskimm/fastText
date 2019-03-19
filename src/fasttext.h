@@ -90,6 +90,10 @@ class FastText {
 
   void saveVectors(const std::string& filename);
 
+  void saveParVectors(const std::string& filename, int32_t i, int32_t n);
+
+  void saveParVectors();
+
   void saveModel(const std::string& filename);
 
   void saveOutput(const std::string& filename);

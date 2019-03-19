@@ -276,6 +276,8 @@ real Model::computeLoss(
     loss = softmax(targets[targetIndex], lr);
   } else if (args_->loss == loss_name::ova) {
     loss = oneVsAll(targets, lr);
+  } else if (args_->loss == loss_name::sigmoid) {
+    loss = binaryLogistic(targets[0], targets[1] > 0, lr);
   } else {
     throw std::invalid_argument("Unhandled loss function for this model.");
   }
@@ -289,6 +291,9 @@ void Model::update(
     int32_t targetIndex,
     real lr) {
   if (input.size() == 0) {
+    return;
+  }
+  if (args_->loss == loss_name::sigmoid && targets.size() != 2) {
     return;
   }
   computeHidden(input, hidden_);

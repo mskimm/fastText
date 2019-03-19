@@ -100,6 +100,41 @@ void FastText::saveVectors(const std::string& filename) {
   ofs.close();
 }
 
+void FastText::saveParVectors(const std::string& filename, int32_t i, int32_t n) {
+  std::ofstream ofs(filename);
+  if (!ofs.is_open()) {
+    throw std::invalid_argument(
+        filename + " cannot be opened for saving vectors!");
+  }
+  Vector vec(args_->dim);
+  int32_t s = (dict_->nwords() / n) * i;
+  int32_t l = s + dict_->nwords() / n;
+  if (i + 1 == n) {
+    l = dict_->nwords();
+  }
+  for (int32_t i = s; i < l; i++) {
+    std::string word = dict_->getWord(i);
+    getWordVector(vec, word);
+    ofs << word << " " << vec << std::endl;
+  }
+  ofs.close();
+}
+
+void FastText::saveParVectors() {
+  std::vector<std::thread> threads;
+  for (int32_t i = 0; i < args_->thread; i++) {
+    threads.push_back(std::thread([=]() {
+      std::stringstream filename;
+      filename << args_->output
+               << std::setfill('0') << std::setw(5) << i << ".vec";
+      saveParVectors(filename.str(), i, args_->thread);
+    }));
+  }
+  for (int32_t i = 0; i < args_->thread; i++) {
+    threads[i].join();
+  }
+}
+
 void FastText::saveVectors() {
   saveVectors(args_->output + ".vec");
 }
@@ -343,7 +378,7 @@ void FastText::supervised(
   if (labels.size() == 0 || line.size() == 0) {
     return;
   }
-  if (args_->loss == loss_name::ova) {
+  if (args_->loss == loss_name::ova || args_->loss == loss_name::sigmoid) {
     model.update(line, labels, Model::kAllLabelsAsTarget, lr);
   } else {
     std::uniform_int_distribution<> uniform(0, labels.size() - 1);
@@ -722,7 +757,17 @@ void FastText::train(const Args& args) {
     throw std::invalid_argument(
         args_->input + " cannot be opened for training!");
   }
-  dict_->readFromFile(ifs);
+  if (args_->dict != "") {
+    std::ifstream difs(args_->dict);
+    if (!difs.is_open()) {
+      throw std::invalid_argument(
+          "no such dict " + args_->dict);
+    }
+    dict_->loadFromDump(difs);
+    difs.close();
+  } else {
+    dict_->readFromFile(ifs);
+  }
   ifs.close();
 
   if (args_->pretrainedVectors.size() != 0) {

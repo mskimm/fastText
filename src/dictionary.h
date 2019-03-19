@@ -94,6 +94,7 @@ class Dictionary {
   std::string getLabel(int32_t) const;
   void save(std::ostream&) const;
   void load(std::istream&);
+  void loadFromDump(std::istream& in);
   std::vector<int64_t> getCounts(entry_type) const;
   int32_t getLine(std::istream&, std::vector<int32_t>&, std::vector<int32_t>&)
       const;
@@ -106,6 +107,9 @@ class Dictionary {
   }
   void dump(std::ostream&) const;
   void init();
+
+  std::string pos;
+  std::string neg;
 };
 
 } // namespace fasttext
