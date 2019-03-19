@@ -205,7 +205,7 @@ void Model::findKBest(
     std::vector<std::pair<real, int32_t>>& heap,
     Vector& hidden,
     Vector& output) const {
-  if (args_->loss == loss_name::ova) {
+  if (args_->loss == loss_name::ova || args_->loss == loss_name::sigmoid) {
     computeOutputSigmoid(hidden, output);
   } else {
     computeOutputSoftmax(hidden, output);
