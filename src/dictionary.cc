@@ -14,6 +14,7 @@
 #include <cmath>
 #include <fstream>
 #include <iostream>
+#include <sstream>
 #include <iterator>
 #include <stdexcept>
 
@@ -498,20 +499,36 @@ void Dictionary::loadFromDump(std::istream& in) {
   words_.clear();
   pruneidx_size_ = -1;
   pruneidx_.clear();
-  in >> size_ >> nwords_ >> nlabels_ >> ntokens_;
-  std::string tpe;
-  for (int32_t i = 0; i < size_; i++) {
+  ntokens_ = 0;
+  std::string line;
+  std::string a, b, c;
+  while (std::getline(in, line)) {
+    std::stringstream ss(line);
+    ss >> a >> b >> c;
+    if (a == pos || a == neg) {
+      ntokens_ += std::stol(b);
+      continue;
+    }
     entry e;
-    in >> e.word >> e.count >> tpe;
-    if (tpe == "word") {
+    e.word = a;
+    try {
+      e.count = std::stol(b);
+    } catch(const std::invalid_argument& e) {
+      // ignore malformed
+      continue;
+    }
+    if (c == "word") {
       e.type = entry_type(entry_type::word);
-    } else if (tpe == "label") {
+    } else if (c == "label") {
       e.type = entry_type(entry_type::label);
     } else {
       throw std::invalid_argument("invalid label type");
     }
+    ntokens_ += e.count;
     words_.push_back(e);
   }
+  // trick for sorting words and set values nwords_, nlabels_, and size_
+  threshold(args_->minCount, args_->minCountLabel);
   initTableDiscard();
   initNgrams();
 
