@@ -30,14 +30,13 @@ ifstreams::ifstreams(const std::vector<std::string>& files) {
   }
   size_ = 0;
   for (auto fn : files) {
-    std::ifstream fis0(fn);
-    ss_.emplace_back(fn);
+    ss_.push_back(std::make_shared<std::ifstream>(fn));
     auto& fis = ss_[ss_.size() - 1];
-    if (!fis.is_open()) {
+    if (!fis->is_open()) {
       throw std::invalid_argument(
           fn + " cannot be opened for training!");
     }
-    int64_t thisSize = utils::size(fis);
+    int64_t thisSize = utils::size(*fis);
     sizes_.push_back(thisSize);
     size_ += thisSize;
   }
@@ -56,31 +55,31 @@ void ifstreams::seek(int32_t i, int32_t n) {
   }
   if (pos >= 0) {
     auto& ifs = ss_[j];
-    utils::seek(ifs, pos);
+    utils::seek(*ifs, pos);
   } else {
     auto& ifs = ss_[j - 1];
     pos = sizes_[j - 1] + pos;
-    utils::seek(ifs, pos);
+    utils::seek(*ifs, pos);
   }
 }
 
-std::ifstream& ifstreams::get() {
-  if (ss_[curr_].eof()) {
-    utils::seek(ss_[curr_], 0);
+std::shared_ptr<std::istream> ifstreams::get() {
+  if (ss_[curr_]->eof()) {
+    utils::seek(*ss_[curr_], 0);
     curr_ = static_cast<int32_t>((curr_ + 1) % ss_.size());
-    utils::seek(ss_[curr_], 0);
+    utils::seek(*ss_[curr_], 0);
   }
   return ss_[curr_];
 }
 
 void ifstreams::close() {
   for (auto& s : ss_) {
-    s.close();
+    s->close();
   }
 }
 
 int32_t ifstreams::numFiles() const {
-  return ss_.size();
+  return static_cast<int32_t>(ss_.size());
 }
 } // namespace utils
 

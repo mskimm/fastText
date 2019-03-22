@@ -681,13 +681,13 @@ void FastText::trainThread(int32_t threadId) {
     real progress = real(tokenCount_) / (args_->epoch * ntokens);
     real lr = args_->lr * (1.0 - progress);
     if (args_->model == model_name::sup) {
-      localTokenCount += dict_->getLine(ifss.get(), line, labels);
+      localTokenCount += dict_->getLine(*ifss.get(), line, labels);
       supervised(model, lr, line, labels);
     } else if (args_->model == model_name::cbow) {
-      localTokenCount += dict_->getLine(ifss.get(), line, model.rng);
+      localTokenCount += dict_->getLine(*ifss.get(), line, model.rng);
       cbow(model, lr, line);
     } else if (args_->model == model_name::sg) {
-      localTokenCount += dict_->getLine(ifss.get(), line, model.rng);
+      localTokenCount += dict_->getLine(*ifss.get(), line, model.rng);
       skipgram(model, lr, line);
     }
     if (localTokenCount > args_->lrUpdateRate) {
@@ -765,7 +765,7 @@ void FastText::train(const Args& args) {
     if (ifss.numFiles() != 1) {
       throw std::invalid_argument("-dict required for multiple inputs");
     }
-    dict_->readFromFile(ifss.get());
+    dict_->readFromFile(*ifss.get());
   }
   ifss.close();
 

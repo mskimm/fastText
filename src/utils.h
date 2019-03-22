@@ -36,7 +36,7 @@ bool contains(const std::vector<T>& container, const T& value) {
 
 class ifstreams {
  protected:
-  std::vector<std::ifstream> ss_;
+  std::vector<std::shared_ptr<std::ifstream>> ss_;
   std::vector<int64_t> sizes_;
   int64_t size_;
   int32_t curr_;
@@ -50,7 +50,7 @@ class ifstreams {
 
   void seek(int32_t, int32_t);
 
-  std::ifstream& get();
+  std::shared_ptr<std::istream> get();
 
   void close();
 };
