@@ -34,28 +34,6 @@ bool contains(const std::vector<T>& container, const T& value) {
       container.end();
 }
 
-class ifstreams {
- protected:
-  std::vector<std::ifstream> ss_;
-  std::vector<int64_t> sizes_;
-  int64_t size_;
-  int32_t curr_;
- public:
-  explicit ifstreams(const std::vector<std::string>&);
-  ifstreams(const ifstreams&) = default;
-  ifstreams& operator=(const ifstreams&) = delete;
-
-  int64_t size() const;
-  int32_t numFiles() const;
-
-  void seek(int32_t, int32_t);
-
-  std::ifstream& get();
-
-  void close();
-};
-
-
 } // namespace utils
 
 } // namespace fasttext

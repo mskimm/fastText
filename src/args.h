@@ -26,7 +26,7 @@ class Args {
 
  public:
   Args();
-  std::vector<std::string> input;
+  std::string input;
   std::string output;
   std::string dict;
   double lr;
