@@ -664,8 +664,8 @@ void FastText::analogies(int32_t k) {
 }
 
 void FastText::trainThread(int32_t threadId) {
-  std::ifstream ifs(args_->input);
-  utils::seek(ifs, threadId * utils::size(ifs) / args_->thread);
+  utils::ifstreams ifss(args_->input);
+  ifss.seek(threadId, args_->thread);
 
   Model model(input_, output_, args_, threadId);
   if (args_->model == model_name::sup) {
@@ -681,13 +681,13 @@ void FastText::trainThread(int32_t threadId) {
     real progress = real(tokenCount_) / (args_->epoch * ntokens);
     real lr = args_->lr * (1.0 - progress);
     if (args_->model == model_name::sup) {
-      localTokenCount += dict_->getLine(ifs, line, labels);
+      localTokenCount += dict_->getLine(ifss.get(), line, labels);
       supervised(model, lr, line, labels);
     } else if (args_->model == model_name::cbow) {
-      localTokenCount += dict_->getLine(ifs, line, model.rng);
+      localTokenCount += dict_->getLine(ifss.get(), line, model.rng);
       cbow(model, lr, line);
     } else if (args_->model == model_name::sg) {
-      localTokenCount += dict_->getLine(ifs, line, model.rng);
+      localTokenCount += dict_->getLine(ifss.get(), line, model.rng);
       skipgram(model, lr, line);
     }
     if (localTokenCount > args_->lrUpdateRate) {
@@ -699,7 +699,7 @@ void FastText::trainThread(int32_t threadId) {
   }
   if (threadId == 0)
     loss_ = model.getLoss();
-  ifs.close();
+  ifss.close();
 }
 
 void FastText::loadVectors(const std::string& filename) {
@@ -748,15 +748,11 @@ void FastText::loadVectors(const std::string& filename) {
 void FastText::train(const Args& args) {
   args_ = std::make_shared<Args>(args);
   dict_ = std::make_shared<Dictionary>(args_);
-  if (args_->input == "-") {
+  if (args_->input[0] == "-") {
     // manage expectations
     throw std::invalid_argument("Cannot use stdin for training!");
   }
-  std::ifstream ifs(args_->input);
-  if (!ifs.is_open()) {
-    throw std::invalid_argument(
-        args_->input + " cannot be opened for training!");
-  }
+  utils::ifstreams ifss(args_->input);
   if (args_->dict != "") {
     std::ifstream difs(args_->dict);
     if (!difs.is_open()) {
@@ -766,9 +762,12 @@ void FastText::train(const Args& args) {
     dict_->loadFromDump(difs);
     difs.close();
   } else {
-    dict_->readFromFile(ifs);
+    if (ifss.numFiles() != 1) {
+      throw std::invalid_argument("-dict required for multiple inputs");
+    }
+    dict_->readFromFile(ifss.get());
   }
-  ifs.close();
+  ifss.close();
 
   if (args_->pretrainedVectors.size() != 0) {
     loadVectors(args_->pretrainedVectors);

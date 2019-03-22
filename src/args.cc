@@ -105,7 +105,12 @@ void Args::parseArgs(const std::vector<std::string>& args) {
         printHelp();
         exit(EXIT_FAILURE);
       } else if (args[ai] == "-input") {
-        input = std::string(args.at(ai + 1));
+        ai --;
+        for (int aj = ai + 2;
+             aj < args.size() && args[aj][0] != '-';
+             aj++, ai++) {
+          input.emplace_back(args.at(aj));
+        }
       } else if (args[ai] == "-output") {
         output = std::string(args.at(ai + 1));
       } else if (args[ai] == "-dict") {
