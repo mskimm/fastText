@@ -18,22 +18,32 @@ namespace fasttext {
 
 void Meter::log(
     const std::vector<int32_t>& labels,
-    const std::vector<std::pair<real, int32_t>>& predictions) {
+    const std::vector<std::pair<real, int32_t>>& predictions,
+    loss_name loss) {
   nexamples_++;
-  metrics_.gold += labels.size();
-  metrics_.predicted += predictions.size();
 
-  for (const auto& prediction : predictions) {
-    labelMetrics_[prediction.second].predicted++;
-
-    if (utils::contains(labels, prediction.second)) {
-      labelMetrics_[prediction.second].predictedGold++;
-      metrics_.predictedGold++;
+  if (loss == loss_name::sigmoid) {
+    labelScores_[labels[0]].emplace_back(predictions[labels[0]].first, labels[1]);
+    labelMetrics_[labels[0]].predicted++;
+    if (labels[1] == 1) {
+      labelMetrics_[labels[0]].gold++;
     }
-  }
+  } else {
+    metrics_.gold += labels.size();
+    metrics_.predicted += predictions.size();
 
-  for (const auto& label : labels) {
-    labelMetrics_[label].gold++;
+    for (const auto& prediction : predictions) {
+      labelMetrics_[prediction.second].predicted++;
+
+      if (utils::contains(labels, prediction.second)) {
+        labelMetrics_[prediction.second].predictedGold++;
+        metrics_.predictedGold++;
+      }
+    }
+
+    for (const auto& label : labels) {
+      labelMetrics_[label].gold++;
+    }
   }
 }
 
@@ -47,6 +57,43 @@ double Meter::recall(int32_t i) {
 
 double Meter::f1Score(int32_t i) {
   return labelMetrics_[i].f1Score();
+}
+
+int64_t Meter::negatives(int32_t i) {
+  return labelMetrics_[i].predicted - labelMetrics_[i].gold;
+}
+int64_t Meter::positives(int32_t i) {
+  return labelMetrics_[i].gold;
+}
+
+double Meter::auc(int32_t li) {
+  auto& scores = labelScores_[li];
+  std::sort(scores.begin(), scores.end());
+  std::vector<real> rank(scores.size());
+  for (int64_t i = 0; i < scores.size(); i++) {
+    if (i == scores.size() - 1 || scores[i].first != scores[i + 1].first) {
+      rank[i] = i + 1;
+    } else {
+      int64_t j = i + 1;
+      while (j < scores.size() && scores[j].first == scores[i].first) {
+        j += 1;
+      }
+      real r = (i + 1 + j) / 2.0f;
+      for (int64_t k = i; k < j; k++) {
+        rank[k] = r;
+      }
+      i = j - 1;
+    }
+  }
+  double auc = 0;
+  for (int64_t i = 0; i < scores.size(); i++) {
+    if (scores[i].second == 1) {
+      auc += rank[i];
+    }
+  }
+  int64_t pos = positives(li);
+  int64_t neg = negatives(li);
+  return (auc - (pos * (pos + 1) / 2.0)) / (pos * neg);
 }
 
 double Meter::precision() const {

@@ -167,14 +167,45 @@ void test(const std::vector<std::string>& args) {
     };
 
     std::shared_ptr<const Dictionary> dict = fasttext.getDictionary();
+    double minAuc = 0, maxAuc = 0, meanAuc = 0;
+    int64_t nnz = 0;
     for (int32_t labelId = 0; labelId < dict->nlabels(); labelId++) {
-      writeMetric("F1-Score", meter.f1Score(labelId));
-      writeMetric("Precision", meter.precision(labelId));
-      writeMetric("Recall", meter.recall(labelId));
-      std::cout << " " << dict->getLabel(labelId) << std::endl;
+      if (fasttext.getArgs().loss == loss_name::sigmoid) {
+        double auc = meter.auc(labelId);
+        if (std::isfinite(auc)) {
+          if (nnz == 0) {
+            minAuc = auc;
+            maxAuc = auc;
+          } else {
+            minAuc = std::min(auc, minAuc);
+            maxAuc = std::max(auc, maxAuc);
+          }
+          meanAuc += auc;
+          nnz += 1;
+        }
+        writeMetric("AUC", auc);
+        std::cout << "+ : " << meter.positives(labelId) << "  ";
+        std::cout << "- : " << meter.negatives(labelId) << "  ";
+        std::cout << " " << dict->getLabel(labelId) << std::endl;
+      } else {
+        writeMetric("F1-Score", meter.f1Score(labelId));
+        writeMetric("Precision", meter.precision(labelId));
+        writeMetric("Recall", meter.recall(labelId));
+        std::cout << " " << dict->getLabel(labelId) << std::endl;
+      }
+    }
+    if (fasttext.getArgs().loss == loss_name::sigmoid) {
+      std::cout << "N"
+                << "\t" << meter.nexamples() << std::endl;
+      std::cout << std::setprecision(3);
+      std::cout << "min" << "\t" << minAuc << std::endl;
+      std::cout << "max" << "\t" << maxAuc << std::endl;
+      std::cout << "mean" << "\t" << meanAuc / nnz << std::endl;
+      std::cout << "nnz" << "\t" << nnz << std::endl;
+    } else {
+      meter.writeGeneralMetrics(std::cout, k);
     }
   }
-  meter.writeGeneralMetrics(std::cout, k);
 
   exit(0);
 }
@@ -401,7 +432,15 @@ void dump(const std::vector<std::string>& args) {
 }
 
 int main(int argc, char** argv) {
+#ifdef REVISION
+  std::cerr << "revision: " REVISION << std::endl;
+#endif
   std::vector<std::string> args(argv, argv + argc);
+  std::cerr << "command:";
+  for (auto &a : args) {
+    std::cerr << " " << a;
+  }
+  std::cerr << std::endl;
   if (args.size() < 2) {
     printUsage();
     exit(EXIT_FAILURE);

@@ -181,14 +181,24 @@ void Model::predict(
   if (args_->model != model_name::sup) {
     throw std::invalid_argument("Model needs to be supervised for prediction!");
   }
-  heap.reserve(k + 1);
-  computeHidden(input, hidden);
-  if (args_->loss == loss_name::hs) {
-    dfs(k, threshold, 2 * osz_ - 2, 0.0, heap, hidden);
+  if (args_->loss == loss_name::sigmoid) {
+    heap.resize(osz_);
+    computeHidden(input, hidden);
+    computeOutputSigmoid(hidden, output);
+    for (int i = 0; i < osz_; i++) {
+      heap[i].first = output[i];
+      heap[i].second = i;
+    }
   } else {
-    findKBest(k, threshold, heap, hidden, output);
+    heap.reserve(k + 1);
+    computeHidden(input, hidden);
+    if (args_->loss == loss_name::hs) {
+      dfs(k, threshold, 2 * osz_ - 2, 0.0, heap, hidden);
+    } else {
+      findKBest(k, threshold, heap, hidden, output);
+    }
+    std::sort_heap(heap.begin(), heap.end(), comparePairs);
   }
-  std::sort_heap(heap.begin(), heap.end(), comparePairs);
 }
 
 void Model::predict(

@@ -442,7 +442,7 @@ void FastText::test(std::istream& in, int32_t k, real threshold, Meter& meter)
     if (!labels.empty() && !line.empty()) {
       predictions.clear();
       predict(k, line, predictions, threshold);
-      meter.log(labels, predictions);
+      meter.log(labels, predictions, args_->loss);
     }
   }
 }

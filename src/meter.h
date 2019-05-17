@@ -36,15 +36,19 @@ class Meter {
   };
 
  public:
-  Meter() : metrics_(), nexamples_(0), labelMetrics_() {}
+  Meter() : metrics_(), nexamples_(0), labelMetrics_(), labelScores_() {}
 
   void log(
       const std::vector<int32_t>& labels,
-      const std::vector<std::pair<real, int32_t>>& predictions);
+      const std::vector<std::pair<real, int32_t>>& predictions,
+      loss_name loss);
 
   double precision(int32_t);
   double recall(int32_t);
   double f1Score(int32_t);
+  double auc(int32_t);
+  int64_t negatives(int32_t);
+  int64_t positives(int32_t);
   double precision() const;
   double recall() const;
   uint64_t nexamples() const {
@@ -56,6 +60,7 @@ class Meter {
   Metrics metrics_{};
   uint64_t nexamples_;
   std::unordered_map<int32_t, Metrics> labelMetrics_;
+  std::unordered_map<int32_t, std::vector<std::pair<real, int32_t>>> labelScores_;
 };
 
 } // namespace fasttext
